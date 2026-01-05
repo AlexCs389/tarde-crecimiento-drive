@@ -31,6 +31,118 @@
 $ npm install
 ```
 
+## Database setup
+
+This project uses PostgreSQL with Prisma ORM.
+
+### Scenario 1: First time setup (cloning the project)
+
+When you clone the project for the first time and need to set up the database:
+
+#### 1. Configure environment variables
+
+Create a `.env` file in the project root:
+
+```bash
+DATABASE_URL="postgresql://username:password@localhost:5432/database_name?schema=public"
+```
+
+Replace `username`, `password`, `localhost:5432`, and `database_name` with your PostgreSQL credentials.
+
+#### 2. Create the database
+
+```bash
+$ npm run db:create
+```
+
+This will automatically create the PostgreSQL database using the credentials from your `.env` file.
+
+#### 3. Apply existing migrations
+
+```bash
+$ npm run db:migrate:dev
+```
+
+This will apply all existing migrations from the repository to your local database. When prompted for a migration name, just press Enter (it will only apply existing migrations, not create new ones).
+
+> **Note:** `npm run db:migrate:dev` automatically runs `prisma generate` after applying migrations.
+
+---
+
+### Scenario 2: Modifying the database schema
+
+When you need to add or modify tables/columns in an existing setup:
+
+#### 1. Update the Prisma schema
+
+Edit `prisma/schema.prisma` to add or modify your models:
+
+```prisma
+model User {
+  id    String @id @default(uuid())
+  email String @unique
+  // Add new fields here
+  phone String? // Example: new field
+}
+```
+
+#### 2. Create and apply the migration
+
+```bash
+$ npm run db:migrate:dev
+```
+
+When prompted, enter a descriptive name for your migration (e.g., `add_phone_to_users`).
+
+This will:
+- Create a new migration file in `prisma/migrations/`
+- Apply the migration to your database
+- Regenerate the Prisma Client with the new changes
+
+#### 3. Commit the migration
+
+Don't forget to commit the new migration files to version control:
+
+```bash
+$ git add prisma/migrations prisma/schema.prisma
+$ git commit -m "Add phone field to User model"
+```
+
+---
+
+### Quick reference: Database commands
+
+| Command | When to use | Description |
+|---------|-------------|-------------|
+| `npm run db:create` | First time setup | Creates the PostgreSQL database |
+| `npm run db:migrate:dev` | First time setup OR after schema changes | Applies/creates migrations in development |
+| `npm run db:migrate` | Production deployment | Applies migrations in production (doesn't create new ones) |
+| `npm run db:migrate:create` | Advanced: review before applying | Creates migration file without applying it |
+| `npm run db:generate` | Rarely needed | Regenerates Prisma Client (auto-run by migrate commands) |
+| `npm run db:push` | Quick prototyping | Syncs schema without creating migration files |
+| `npm run db:studio` | Anytime | Opens visual database browser |
+| `npm run db:reset` | Development only | ⚠️ Deletes all data and reapplies migrations |
+
+### Common workflows
+
+**First time setup:**
+```bash
+npm run db:create
+npm run db:migrate:dev  # Press Enter when asked for migration name
+```
+
+**Adding a new field to a model:**
+```bash
+# 1. Edit prisma/schema.prisma
+# 2. Run:
+npm run db:migrate:dev  # Enter a descriptive name like "add_phone_field"
+```
+
+**Viewing your data:**
+```bash
+npm run db:studio  # Opens http://localhost:5555
+```
+
 ## Compile and run the project
 
 ```bash
