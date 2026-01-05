@@ -13,7 +13,7 @@ services:
     env: node
     region: oregon
     plan: free
-    buildCommand: npm install && npx prisma generate && npm run build
+    buildCommand: npm ci --omit=dev && npm install --save-dev @nestjs/cli typescript && NODE_OPTIONS="--max-old-space-size=460" npx prisma generate && NODE_OPTIONS="--max-old-space-size=460" npm run build
     startCommand: npm run db:migrate && npm run start:prod
     envVars:
       - key: NODE_ENV
