@@ -1,5 +1,5 @@
 # compiled output
-# /dist - comentado para deployar en Render con build precompilado
+/dist
 /node_modules
 /build
 
