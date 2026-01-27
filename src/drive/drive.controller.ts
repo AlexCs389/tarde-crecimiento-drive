@@ -1,17 +1,23 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiUnauthorizedResponse,
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
 
 import { DriveService } from './drive.service';
-import { ListFilesQueryDto, ListFilesResponseDto } from './dto';
+import { ListFilesResponseDto } from './dto';
+import { JwtAuthGuard } from '../authentication/guards/jwt-auth.guard';
+import { CurrentUser } from '../authentication/decorators/current-user.decorator';
+import { UserDto } from '../authentication/dto';
 
 @ApiTags('drive')
 @Controller('drive')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class DriveController {
   constructor(private readonly driveService: DriveService) {}
 
@@ -19,21 +25,21 @@ export class DriveController {
   @ApiOperation({
     summary: 'Listar archivos de Google Drive',
     description:
-      'Obtiene la lista de archivos del Google Drive del usuario usando un refresh token de OAuth',
+      'Obtiene la lista de archivos del Google Drive del usuario autenticado',
   })
   @ApiResponse({
     status: 200,
     description: 'Lista de archivos obtenida exitosamente',
     type: ListFilesResponseDto,
   })
-  @ApiBadRequestResponse({
-    description: 'Solicitud inválida - refresh_token faltante o inválido',
+  @ApiUnauthorizedResponse({
+    description: 'Token JWT inválido o expirado',
   })
   @ApiInternalServerErrorResponse({
     description: 'Error interno del servidor',
   })
-  async files(@Query() query: ListFilesQueryDto) {
-    const files = await this.driveService.listFiles(query.refresh_token);
+  async files(@CurrentUser() user: UserDto) {
+    const files = await this.driveService.listFiles(user.id);
     return { files };
   }
 }
