@@ -23,8 +23,7 @@ export class DriveService {
     }
 
     return this.googleDriveService.listFiles(user.accessToken, {
-      query:
-        "name contains 'Plática de Tarde de crecimiento' and mimeType = 'video/mp4'",
+      q: 'name contains "Plática de Tarde de crecimiento" and mimeType = "video/mp4"',
       fields:
         'files(id, name, mimeType, size, createdTime, webViewLink, webContentLink)',
     });

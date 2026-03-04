@@ -1,5 +1,5 @@
 export class GoogleDriveListFilesDto {
-  query?: string;
+  q?: string;
   fields?: string;
   pageSize?: number;
   pageToken?: string;
