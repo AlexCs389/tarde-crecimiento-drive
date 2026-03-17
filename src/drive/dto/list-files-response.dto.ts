@@ -51,10 +51,39 @@ class DriveFile {
   webContentLink?: string | null;
 }
 
+class Category {
+  @ApiProperty({
+    description: 'Clave de la categoría',
+    example: 'tech_monthly_status',
+  })
+  key: string;
+
+  @ApiProperty({
+    description: 'Valor de la categoría para mostrar',
+    example: 'Tech Monthly Status',
+  })
+  value: string;
+}
+
 export class ListFilesResponseDto {
   @ApiProperty({
     description: 'Lista de archivos del Google Drive',
     type: [DriveFile],
   })
   files: DriveFile[];
+
+  @ApiProperty({
+    description:
+      'Lista de categorías disponibles basadas en los nombres de los archivos',
+    type: [Category],
+    example: [
+      { key: 'all', value: 'Todos' },
+      {
+        key: 'growth_afternoon_talk',
+        value: 'Plática de Tarde de crecimiento',
+      },
+      { key: 'others', value: 'Otros' },
+    ],
+  })
+  categories: Category[];
 }

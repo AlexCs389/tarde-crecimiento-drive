@@ -1,11 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
 
 export class ListFilesQueryDto {
   @ApiProperty({
-    description:
-      'Token de actualización de Google OAuth para acceder a Google Drive',
-    example: 'your-refresh-token-here',
-    required: true,
+    description: 'Clave de categoría para filtrar los archivos (key)',
+    example: 'growth_afternoon_talk',
+    required: false,
   })
-  refresh_token: string;
+  @IsOptional()
+  @IsString()
+  category?: string;
 }

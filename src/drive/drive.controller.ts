@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -9,7 +9,7 @@ import {
 } from '@nestjs/swagger';
 
 import { DriveService } from './drive.service';
-import { ListFilesResponseDto } from './dto';
+import { ListFilesResponseDto, ListFilesQueryDto } from './dto';
 import { JwtAuthGuard } from '../authentication/guards/jwt-auth.guard';
 import { CurrentUser } from '../authentication/decorators/current-user.decorator';
 import { UserDto } from '../authentication/dto';
@@ -25,11 +25,11 @@ export class DriveController {
   @ApiOperation({
     summary: 'Listar archivos de Google Drive',
     description:
-      'Obtiene la lista de archivos del Google Drive del usuario autenticado',
+      'Obtiene la lista de archivos del Google Drive del usuario autenticado. Opcionalmente se puede filtrar por categoría.',
   })
   @ApiResponse({
     status: 200,
-    description: 'Lista de archivos obtenida exitosamente',
+    description: 'Lista de archivos y categorías obtenida exitosamente',
     type: ListFilesResponseDto,
   })
   @ApiUnauthorizedResponse({
@@ -38,8 +38,7 @@ export class DriveController {
   @ApiInternalServerErrorResponse({
     description: 'Error interno del servidor',
   })
-  async files(@CurrentUser() user: UserDto) {
-    const files = await this.driveService.listFiles(user.id);
-    return { files };
+  async files(@CurrentUser() user: UserDto, @Query() query: ListFilesQueryDto) {
+    return this.driveService.listFiles(user.id, query.category);
   }
 }
