@@ -19,4 +19,13 @@ export class ListFilesQueryDto {
   @IsOptional()
   @IsDateString()
   date?: string;
+
+  @ApiProperty({
+    description: 'Texto para buscar en el título de los archivos',
+    example: 'Enero',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
 }

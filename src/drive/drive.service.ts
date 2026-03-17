@@ -26,7 +26,12 @@ export class DriveService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async listFiles(userId: string, categoryKey?: string, date?: string) {
+  async listFiles(
+    userId: string,
+    categoryKey?: string,
+    date?: string,
+    search?: string,
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -37,22 +42,14 @@ export class DriveService {
       );
     }
 
-    const allFilesForCategories = await this.googleDriveService.listFiles(
-      user.accessToken,
-      {
-        q: 'mimeType = "video/mp4"',
-        fields:
-          'files(id, name, mimeType, size, createdTime, webViewLink, webContentLink)',
-      },
-    );
-
-    const categories = this.extractCategories(allFilesForCategories);
+    const categories = this.getAllCategories();
 
     const needsAllFiles =
       !categoryKey || categoryKey === 'all' || categoryKey === 'others';
     const query = this.buildGoogleDriveQuery(
       needsAllFiles ? undefined : categoryKey,
       date,
+      search,
     );
 
     const filteredFiles = await this.googleDriveService.listFiles(
@@ -76,7 +73,11 @@ export class DriveService {
     };
   }
 
-  private buildGoogleDriveQuery(categoryKey?: string, date?: string): string {
+  private buildGoogleDriveQuery(
+    categoryKey?: string,
+    date?: string,
+    search?: string,
+  ): string {
     const conditions: string[] = ['mimeType = "video/mp4"'];
 
     if (date) {
@@ -102,31 +103,21 @@ export class DriveService {
       }
     }
 
+    if (search) {
+      conditions.push(`name contains '${search}'`);
+    }
+
     return conditions.join(' and ');
   }
 
-  private extractCategories(files: drive_v3.Schema$File[]): Category[] {
-    const foundCategories = new Set<string>();
-
-    files.forEach((file) => {
-      const fileName = file.name || '';
-      const matchedCategory = this.categoryPatterns.find((pattern) =>
-        this.matchesCategory(fileName, pattern.value),
-      );
-
-      if (matchedCategory) {
-        foundCategories.add(matchedCategory.key);
-      }
-    });
-
+  private getAllCategories(): Category[] {
     const categoriesArray: Category[] = [{ key: 'all', value: 'Todos' }];
 
-    const sortedFoundCategories = Array.from(foundCategories)
-      .map((key) => this.categoryPatterns.find((p) => p.key === key))
-      .filter((cat): cat is Category => cat !== undefined)
-      .sort((a, b) => a.value.localeCompare(b.value));
+    const sortedCategories = [...this.categoryPatterns].sort((a, b) =>
+      a.value.localeCompare(b.value),
+    );
 
-    categoriesArray.push(...sortedFoundCategories);
+    categoriesArray.push(...sortedCategories);
     categoriesArray.push({ key: 'others', value: 'Otros' });
 
     return categoriesArray;
