@@ -39,6 +39,6 @@ export class DriveController {
     description: 'Error interno del servidor',
   })
   async files(@CurrentUser() user: UserDto, @Query() query: ListFilesQueryDto) {
-    return this.driveService.listFiles(user.id, query.category);
+    return this.driveService.listFiles(user.id, query.category, query.date);
   }
 }

@@ -26,7 +26,7 @@ export class DriveService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async listFiles(userId: string, categoryKey?: string) {
+  async listFiles(userId: string, categoryKey?: string, date?: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -37,22 +37,72 @@ export class DriveService {
       );
     }
 
-    const allFiles = await this.googleDriveService.listFiles(user.accessToken, {
-      q: 'mimeType = "video/mp4"',
-      fields:
-        'files(id, name, mimeType, size, createdTime, webViewLink, webContentLink)',
-    });
+    const allFilesForCategories = await this.googleDriveService.listFiles(
+      user.accessToken,
+      {
+        q: 'mimeType = "video/mp4"',
+        fields:
+          'files(id, name, mimeType, size, createdTime, webViewLink, webContentLink)',
+      },
+    );
 
-    const categories = this.extractCategories(allFiles);
-    const filteredFiles =
-      categoryKey && categoryKey !== 'all'
-        ? this.filterFilesByCategory(allFiles, categoryKey)
-        : allFiles;
+    const categories = this.extractCategories(allFilesForCategories);
+
+    const needsAllFiles =
+      !categoryKey || categoryKey === 'all' || categoryKey === 'others';
+    const query = this.buildGoogleDriveQuery(
+      needsAllFiles ? undefined : categoryKey,
+      date,
+    );
+
+    const filteredFiles = await this.googleDriveService.listFiles(
+      user.accessToken,
+      {
+        q: query,
+        fields:
+          'files(id, name, mimeType, size, createdTime, webViewLink, webContentLink)',
+      },
+    );
+
+    let finalFiles = filteredFiles;
+
+    if (categoryKey === 'others') {
+      finalFiles = this.filterFilesByCategory(filteredFiles, categoryKey);
+    }
 
     return {
-      files: filteredFiles,
+      files: finalFiles,
       categories,
     };
+  }
+
+  private buildGoogleDriveQuery(categoryKey?: string, date?: string): string {
+    const conditions: string[] = ['mimeType = "video/mp4"'];
+
+    if (date) {
+      const targetDate = new Date(date + 'T00:00:00.000Z');
+      const nextDay = new Date(date + 'T00:00:00.000Z');
+      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+
+      const startISO = targetDate.toISOString();
+      const endISO = nextDay.toISOString();
+
+      conditions.push(`createdTime >= '${startISO}'`);
+      conditions.push(`createdTime < '${endISO}'`);
+    }
+
+    if (categoryKey && categoryKey !== 'all' && categoryKey !== 'others') {
+      const category = this.categoryPatterns.find((p) => p.key === categoryKey);
+      if (category) {
+        if (category.key === 'town_hall') {
+          conditions.push(`name contains 'town hall'`);
+        } else {
+          conditions.push(`name contains '${category.value}'`);
+        }
+      }
+    }
+
+    return conditions.join(' and ');
   }
 
   private extractCategories(files: drive_v3.Schema$File[]): Category[] {
@@ -110,6 +160,26 @@ export class DriveService {
     return files.filter((file) => {
       const fileName = file.name || '';
       return this.matchesCategory(fileName, category.value);
+    });
+  }
+
+  private filterFilesByDate(
+    files: drive_v3.Schema$File[],
+    date: string,
+  ): drive_v3.Schema$File[] {
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
+
+    const nextDay = new Date(targetDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+
+    return files.filter((file) => {
+      if (!file.createdTime) {
+        return false;
+      }
+
+      const fileDate = new Date(file.createdTime);
+      return fileDate >= targetDate && fileDate < nextDay;
     });
   }
 }
